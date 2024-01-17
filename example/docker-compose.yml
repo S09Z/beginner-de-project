@@ -1,0 +1,43 @@
+version: '3'
+
+services:
+  source_postgres:
+    image: postgres:12.3-alpine
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_USER: soruce_db
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: secret
+    networks:
+      - elt_network
+    volumes:
+      - ./source_db_init/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  destination_postgres:
+    image: postgres:12.3-alpine
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_USER: destination_db
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: secret
+    networks:
+      - elt_network
+    volumes:
+      - ./source_db_init/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  elt_script:
+    build:
+      context: ./elt_script
+      dockerfile: dockerfile
+    command: ["python", "elt_script.py"]
+    networks:
+      - elt_network
+    depends_on:
+      - source_postgres
+      - destination_postgres
+
+networks:
+  elt_network:
+    driver: bridge
